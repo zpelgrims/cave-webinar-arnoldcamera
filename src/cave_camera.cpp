@@ -1,13 +1,11 @@
 #include <ai.h>
-#include "lentil_thinlens.h"
 
-AI_CAMERA_NODE_EXPORT_METHODS(lentil_thinlensMethods)
-
+AI_CAMERA_NODE_EXPORT_METHODS(cave_cameraMethods)
 
 
 // Improved concentric mapping code by Dave Cline [peter shirley´s blog]
 // maps points on the unit square onto the unit disk uniformly
-inline void concentricDiskSample(float ox, float oy, AtVector2 &lens)
+inline void concentric_disk_sample(float ox, float oy, AtVector2 &lens)
 {
     if (ox == 0.0 && oy == 0.0){
         lens.x = 0.0;
@@ -108,13 +106,6 @@ camera_create_ray
 {
     CameraThinLens* tl = (CameraThinLens*)AiNodeGetLocalData(node);
 
-    
-    float r1 = 0.0, r2 = 0.0;
-    AtVector origin (0, 0, 0);
-    AtVector dir (0, 0, 0);
-
-
-
     // create point on sensor (camera space)
     const AtVector p(input.sx * (tl->sensor_width*0.5), 
                      input.sy * (tl->sensor_width*0.5), 
@@ -125,15 +116,15 @@ camera_create_ray
     AtVector dir_from_center = AiV3Normalize(p); // or norm(p-origin)
 
     // get uniformly distributed points on the unit disk
-    Eigen::Vector2d unit_disk(0, 0);
-    concentricDiskSample(input.lensx, input.lensy, unit_disk);
+    AtVector2 unit_disk(0, 0);
+    concentric_disk_sample(input.lensx, input.lensy, unit_disk);
         
-    AtVector lens(unit_disk(0) * tl->aperture_radius, unit_disk(1) * tl->aperture_radius, 0.0);
-    output.origin = lens;
+    AtVector position_on_lens(unit_disk.x * tl->aperture_radius, unit_disk.y * tl->aperture_radius, 0.0);
+    output.origin = position_on_lens;
 
     const float intersection = std::abs(tl->focus_distance / dir_from_center.z);
     const AtVector focusPoint = dir_from_center * intersection;
-    output.dir = AiV3Normalize(focusPoint - lens);
+    output.dir = AiV3Normalize(focusPoint - position_on_lens);
 
 }
 
@@ -153,9 +144,9 @@ camera_reverse_ray
 node_loader
 {
     if (i != 0) return false;
-    node->methods = lentil_thinlensMethods;
+    node->methods = cave_cameraMethods;
     node->output_type = AI_TYPE_UNDEFINED;
-    node->name = "lentil_thinlens";
+    node->name = "cave_camera";
     node->node_type = AI_NODE_CAMERA;
     strcpy(node->version, AI_VERSION);
     return true;
