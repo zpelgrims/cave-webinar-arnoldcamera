@@ -33,14 +33,6 @@ inline void concentric_disk_sample(float ox, float oy, AtVector2 &lens)
 }
 
 
-enum
-{
-    p_sensor_widthTL,
-    p_focal_lengthTL,
-    p_fstopTL,
-    p_focus_distanceTL
-};
-
 struct CameraThinLens
 {
     float sensor_width;
@@ -50,15 +42,15 @@ struct CameraThinLens
     float fstop;
     float focus_distance;
     float aperture_radius;
-} CameraThinLens tl;
+} data;
 
 
 node_parameters
 {
-    AiParameterFlt("sensor_widthTL", 36.0); // 35mm film
-    AiParameterFlt("focal_lengthTL", 35.0); // in mm
-    AiParameterFlt("fstopTL", 1.4);
-    AiParameterFlt("focus_distanceTL", 100.0); // in cm
+    AiParameterFlt("sensor_width", 36.0); // 35mm film
+    AiParameterFlt("focal_length", 35.0); // in mm
+    AiParameterFlt("fstop", 1.4);
+    AiParameterFlt("focus_distance", 100.0); // in cm
 }
 
 
@@ -76,69 +68,72 @@ node_initialize
 node_update
 {
     AiCameraUpdate(node, false);
-    CameraThinLens* tl = (CameraThinLens*)AiNodeGetLocalData(node);
+    CameraThinLens* data = (CameraThinLens*)AiNodeGetLocalData(node);
 
 
-    tl->sensor_width = AiNodeGetFlt(node, "sensor_widthTL");
-    tl->focal_length = AiNodeGetFlt(node, "focal_lengthTL");
-    tl->focal_length = clamp_min(tl->focal_length, 0.01);
+    data->sensor_width = AiNodeGetFlt(node, "sensor_width");
+    data->focal_length = AiNodeGetFlt(node, "focal_length");
+    data->fstop = AiNodeGetFlt(node, "fstop");
+    data->focus_distance = AiNodeGetFlt(node, "focus_distance");
 
-    tl->fstop = AiNodeGetFlt(node, "fstopTL");
-    tl->fstop = clamp_min(tl->fstop, 0.01);
 
-    tl->focus_distance = AiNodeGetFlt(node, "focus_distanceTL");
+    data->aperture_radius = (data->focal_length / (2.0 * data->fstop)) / 10.0;
 
-    tl->fov = 2.0 * std::atan(tl->sensor_width / (2.0*tl->focal_length));
-    tl->tan_fov = std::tan(tl->fov/2.0);
-    tl->aperture_radius = (tl->focal_length / (2.0 * tl->fstop)) / 10.0;
+
+    // camera reverse
+    // data->fov = 2.0 * std::atan(data->sensor_width / (2.0*data->focal_length));
+    // data->tan_fov = std::tan(data->fov/2.0);
 }
+
 
 // cleanup
 node_finish
 {
-    CameraThinLens* tl = (CameraThinLens*)AiNodeGetLocalData(node);
-    delete tl;
+    CameraThinLens* data = (CameraThinLens*)AiNodeGetLocalData(node);
+    delete data;
 }
 
 
 
 camera_create_ray
 {
-    CameraThinLens* tl = (CameraThinLens*)AiNodeGetLocalData(node);
+    CameraThinLens* data = (CameraThinLens*)AiNodeGetLocalData(node);
 
     // create point on sensor (camera space)
-    const AtVector p(input.sx * (tl->sensor_width*0.5), 
-                     input.sy * (tl->sensor_width*0.5), 
-                     -tl->focal_length);
+    const AtVector p(input.sx * (data->sensor_width*0.5), // scale by half the sensor width because of [-1, 1] domain of input.sx
+                     input.sy * (data->sensor_width*0.5), 
+                     -data->focal_length);
         
-
-    // calculate direction vector from origin to point on lens
-    AtVector dir_from_center = AiV3Normalize(p); // or norm(p-origin)
 
     // get uniformly distributed points on the unit disk
     AtVector2 unit_disk(0, 0);
     concentric_disk_sample(input.lensx, input.lensy, unit_disk);
         
-    AtVector position_on_lens(unit_disk.x * tl->aperture_radius, unit_disk.y * tl->aperture_radius, 0.0);
+    AtVector position_on_lens(unit_disk.x * data->aperture_radius, unit_disk.y * data->aperture_radius, 0.0);
     output.origin = position_on_lens;
 
-    const float intersection = std::abs(tl->focus_distance / dir_from_center.z);
-    const AtVector focusPoint = dir_from_center * intersection;
-    output.dir = AiV3Normalize(focusPoint - position_on_lens);
+// then we need to compute where the point would be on the plane of focus
 
+    // how many times does the focal length fit in the focus distance
+    float diff = data->focus_distance/data->focal_length;
+    
+    // point on focus plane, possible because vector is of unit length (1)
+    AtVector focusPoint = p * diff;
+    
+    output.dir = AiV3Normalize(focusPoint - position_on_lens);
 }
 
 
 // reverse mapping, required for screenspace effects like adaptive subdivision to work.
 camera_reverse_ray
 {
-    const CameraThinLens* tl = (CameraThinLens*)AiNodeGetLocalData(node);
+    // const CameraThinLens* data = (CameraThinLens*)AiNodeGetLocalData(node);
 
-    double coeff = 1.0 / std::max(std::abs(Po.z * tl->tan_fov), 1e-3f);
-    Ps.x = Po.x * coeff;
-    Ps.y = Po.y * coeff;
+    // double coeff = 1.0 / std::max(std::abs(Po.z * data->tan_fov), 1e-3f);
+    // Ps.x = Po.x * coeff;
+    // Ps.y = Po.y * coeff;
 
-    return true;
+    // return true;
 }
 
 node_loader

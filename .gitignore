@@ -1,0 +1,6 @@
+*.hdr
+*.tx
+*.exr
+*.obj
+
+imgs/
