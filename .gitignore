@@ -3,4 +3,4 @@
 *.exr
 *.obj
 
-imgs/
+/houdini_tests/backup
