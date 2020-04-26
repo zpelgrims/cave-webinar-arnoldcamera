@@ -32,18 +32,17 @@ node_update
 }
 
 
+camera_create_ray
+{
+    DataContainer* data = (DataContainer*)AiNodeGetLocalData(node);
+}
+
+
 // cleanup
 node_finish
 {
     DataContainer* data = (DataContainer*)AiNodeGetLocalData(node);
     delete data;
-}
-
-
-
-camera_create_ray
-{
-    DataContainer* data = (DataContainer*)AiNodeGetLocalData(node);
 }
 
 

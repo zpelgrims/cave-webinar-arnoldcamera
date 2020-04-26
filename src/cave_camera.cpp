@@ -111,7 +111,7 @@ camera_create_ray
                      -data->focal_length);
     
     // create unit vector from (0,0,0) to P
-    AtVector dir_from_center = AiV3Normalize(p);    
+    AtVector dir_from_center = AiV3Normalize(p);
     
     // get uniformly distributed points on the unit disk
     // arnold already provides two random points on the unit square for our use (input.lensx, lensy)
