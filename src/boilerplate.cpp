@@ -11,11 +11,11 @@ struct DataContainer
 
 node_parameters
 {
-    AiParameterFlt("parameter_name", 36.0); // 35mm film
+    AiParameterFlt("parameter_name", 1.0);
 }
 
 
-// constructor, ran when the node gets created.
+// ran when the node gets created.
 // Usually only used to setup the data structures.
 node_initialize
 {

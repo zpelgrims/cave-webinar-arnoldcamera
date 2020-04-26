@@ -1,3 +1,5 @@
+# this isn't the smartest, most compact way to set it up. This makefile is set up for readability
+
 # differentiate between linux/osx
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
@@ -34,7 +36,7 @@ $(shell mkdir -p bin bin/5.3.0.2 bin/6.0.0.0)
 	
 # specify all the targets
 all: cave_camera_5.3.0.2\
-	 cave_camera_6.0.0.0
+     cave_camera_6.0.0.0
 	
 
 cave_camera_5.3.0.2: Makefile src/cave_camera.cpp
